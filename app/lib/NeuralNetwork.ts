@@ -2,18 +2,22 @@ export type NetworkState = {
   layers: number[];
   weights: number[][][];
   biases: number[][];
-  activation: string;
+  activation: ActivationType;
   learningRate: number;
 };
+
+export type ActivationType = 'sigmoid' | 'tanh' | 'relu';
+
+type ActivationFunction = (x: number) => number;
 
 export class NeuralNetwork {
   private weights: number[][][];
   private biases: number[][];
   private layers: number[];
   private learningRate: number;
-  private activation: string;
-  private activationFn: (x: number) => number;
-  private activationDerivative: (x: number) => number;
+  private activation: ActivationType;
+  private activationFn: ActivationFunction;
+  private activationDerivative: ActivationFunction;
 
   constructor(layers: number[], learningRate: number = 0.1) {
     this.layers = layers;
@@ -21,8 +25,15 @@ export class NeuralNetwork {
     this.activation = 'sigmoid';
     this.weights = [];
     this.biases = [];
+    
+    // Initialize activation functions with sigmoid as default
+    this.activationFn = (x: number) => 1 / (1 + Math.exp(-x));
+    this.activationDerivative = (x: number) => {
+      const sigmoid = 1 / (1 + Math.exp(-x));
+      return sigmoid * (1 - sigmoid);
+    };
+
     this.initializeNetwork();
-    this.setActivation(this.activation);
   }
 
   private initializeNetwork() {
@@ -50,9 +61,9 @@ export class NeuralNetwork {
     return mean + stdDev * randStdNormal;
   }
 
-  setActivation(activation: string) {
+  setActivation(activation: ActivationType): void {
     this.activation = activation;
-    switch (activation.toLowerCase()) {
+    switch (activation) {
       case 'relu':
         this.activationFn = (x: number) => Math.max(0, x);
         this.activationDerivative = (x: number) => x > 0 ? 1 : 0;
@@ -62,16 +73,22 @@ export class NeuralNetwork {
         this.activationDerivative = (x: number) => 1 - Math.pow(Math.tanh(x), 2);
         break;
       case 'sigmoid':
-      default:
         this.activationFn = (x: number) => 1 / (1 + Math.exp(-x));
         this.activationDerivative = (x: number) => {
           const sigmoid = 1 / (1 + Math.exp(-x));
           return sigmoid * (1 - sigmoid);
         };
+        break;
+      default:
+        throw new Error(`Unsupported activation function: ${activation}`);
     }
   }
 
   forward(inputs: number[]): number[] {
+    if (inputs.length !== this.layers[0]) {
+      throw new Error(`Input size mismatch. Expected ${this.layers[0]}, got ${inputs.length}`);
+    }
+
     let currentLayer = inputs;
     const activations: number[][] = [inputs];
     const zValues: number[][] = [];
@@ -98,6 +115,13 @@ export class NeuralNetwork {
   }
 
   train(inputs: number[], targets: number[]): number {
+    if (inputs.length !== this.layers[0]) {
+      throw new Error(`Input size mismatch. Expected ${this.layers[0]}, got ${inputs.length}`);
+    }
+    if (targets.length !== this.layers[this.layers.length - 1]) {
+      throw new Error(`Target size mismatch. Expected ${this.layers[this.layers.length - 1]}, got ${targets.length}`);
+    }
+
     // Forward pass
     let currentLayer = inputs;
     const activations: number[][] = [inputs];
@@ -174,7 +198,11 @@ export class NeuralNetwork {
     };
   }
 
-  loadNetworkState(state: NetworkState) {
+  loadNetworkState(state: NetworkState): void {
+    if (!state.layers || !state.weights || !state.biases || !state.activation || state.learningRate === undefined) {
+      throw new Error('Invalid network state');
+    }
+
     this.layers = [...state.layers];
     this.weights = JSON.parse(JSON.stringify(state.weights));
     this.biases = JSON.parse(JSON.stringify(state.biases));
@@ -184,8 +212,7 @@ export class NeuralNetwork {
 
   // Methods for decision boundary visualization
   predictPoint(x: number, y: number): number {
-    const output = this.forward([x, y]);
-    return output[0];
+    return this.forward([x, y])[0];
   }
 
   getDecisionBoundary(
