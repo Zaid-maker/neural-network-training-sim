@@ -44,7 +44,7 @@ export const NetworkControls: React.FC<NetworkControlsProps> = ({
                     networkState.layers,
                     networkState.learningRate
                 );
-                newNetwork.loadState(networkState);
+                newNetwork.loadNetworkState(networkState);
                 onLoadNetwork(newNetwork);
             } catch (error) {
                 console.error('Error loading network state:', error);
