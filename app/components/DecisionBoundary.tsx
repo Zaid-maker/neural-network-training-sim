@@ -1,18 +1,78 @@
 'use client';
 
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { NeuralNetwork } from '../lib/NeuralNetwork';
 
 interface DecisionBoundaryProps {
     network: NeuralNetwork;
     resolution?: number;
+    showGradients?: boolean;
 }
 
 export const DecisionBoundary: React.FC<DecisionBoundaryProps> = ({ 
     network,
-    resolution = 50
+    resolution = 50,
+    showGradients = false
 }) => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
+    const [isHovering, setIsHovering] = useState(false);
+    const [hoverPoint, setHoverPoint] = useState<{ x: number, y: number, value: number } | null>(null);
+
+    const drawGradients = (ctx: CanvasRenderingContext2D, canvas: HTMLCanvasElement) => {
+        const gradients = network.getGradientField(0, 1, 0, 1, 10);
+        
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
+        ctx.lineWidth = 1;
+
+        gradients.forEach(({ x, y, dx, dy }) => {
+            const canvasX = x * canvas.width;
+            const canvasY = (1 - y) * canvas.height;
+            
+            // Normalize gradient vector
+            const magnitude = Math.sqrt(dx * dx + dy * dy);
+            const scale = 15; // Arrow length
+            
+            if (magnitude > 0) {
+                const normalizedDx = (dx / magnitude) * scale;
+                const normalizedDy = (dy / magnitude) * scale;
+
+                // Draw arrow
+                ctx.beginPath();
+                ctx.moveTo(canvasX, canvasY);
+                ctx.lineTo(canvasX + normalizedDx, canvasY - normalizedDy);
+                
+                // Arrow head
+                const headLength = 5;
+                const angle = Math.atan2(-normalizedDy, normalizedDx);
+                ctx.lineTo(
+                    canvasX + normalizedDx - headLength * Math.cos(angle - Math.PI / 6),
+                    canvasY - normalizedDy + headLength * Math.sin(angle - Math.PI / 6)
+                );
+                ctx.moveTo(canvasX + normalizedDx, canvasY - normalizedDy);
+                ctx.lineTo(
+                    canvasX + normalizedDx - headLength * Math.cos(angle + Math.PI / 6),
+                    canvasY - normalizedDy + headLength * Math.sin(angle + Math.PI / 6)
+                );
+                ctx.stroke();
+            }
+        });
+    };
+
+    const handleMouseMove = (event: React.MouseEvent<HTMLCanvasElement>) => {
+        const canvas = canvasRef.current;
+        if (!canvas) return;
+
+        const rect = canvas.getBoundingClientRect();
+        const x = (event.clientX - rect.left) / canvas.width;
+        const y = 1 - (event.clientY - rect.top) / canvas.height;
+
+        if (x >= 0 && x <= 1 && y >= 0 && y <= 1) {
+            const value = network.predictPoint(x, y);
+            setHoverPoint({ x, y, value });
+        } else {
+            setHoverPoint(null);
+        }
+    };
 
     useEffect(() => {
         const canvas = canvasRef.current;
@@ -29,24 +89,21 @@ export const DecisionBoundary: React.FC<DecisionBoundaryProps> = ({
         ctx.clearRect(0, 0, canvas.width, canvas.height);
 
         // Draw decision boundary
-        const stepSize = 1 / resolution;
+        const points = network.getDecisionBoundary(0, 1, 0, 1, resolution);
         const imageData = ctx.createImageData(resolution, resolution);
 
-        for (let x = 0; x < resolution; x++) {
-            for (let y = 0; y < resolution; y++) {
-                const input = [x * stepSize, y * stepSize];
-                const output = network.forward(input)[0];
-                
-                const index = (y * resolution + x) * 4;
-                const intensity = Math.floor(output * 255);
-                
-                // Blue for output close to 0, Red for output close to 1
-                imageData.data[index] = intensity; // R
-                imageData.data[index + 1] = 0; // G
-                imageData.data[index + 2] = 255 - intensity; // B
-                imageData.data[index + 3] = 255; // A
-            }
-        }
+        points.forEach((point, i) => {
+            const x = Math.floor(point.x * (resolution - 1));
+            const y = Math.floor((1 - point.y) * (resolution - 1));
+            const index = (y * resolution + x) * 4;
+            const intensity = Math.floor(point.value * 255);
+            
+            // Blue for output close to 0, Red for output close to 1
+            imageData.data[index] = intensity; // R
+            imageData.data[index + 1] = 0; // G
+            imageData.data[index + 2] = 255 - intensity; // B
+            imageData.data[index + 3] = 255; // A
+        });
 
         // Scale up the image data to fit canvas
         const tempCanvas = document.createElement('canvas');
@@ -56,7 +113,7 @@ export const DecisionBoundary: React.FC<DecisionBoundaryProps> = ({
         if (!tempCtx) return;
 
         tempCtx.putImageData(imageData, 0, 0);
-        ctx.imageSmoothingEnabled = false;
+        ctx.imageSmoothingEnabled = true;
         ctx.drawImage(tempCanvas, 0, 0, canvas.width, canvas.height);
 
         // Draw grid
@@ -101,27 +158,27 @@ export const DecisionBoundary: React.FC<DecisionBoundaryProps> = ({
             ctx.fillText(value, 25, y + 4);
         }
 
-        // Draw training points if available
-        const trainingPoints = network.getTrainingPoints?.() || [];
-        trainingPoints.forEach(point => {
-            const [x, y] = point.inputs;
-            const target = point.target;
-            
+        // Draw decision boundary contour
+        const contourPoints = points.filter(p => Math.abs(p.value - 0.5) < 0.1);
+        if (contourPoints.length > 0) {
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
+            ctx.lineWidth = 2;
             ctx.beginPath();
-            ctx.arc(
-                x * canvas.width,
-                (1 - y) * canvas.height,
-                5,
-                0,
-                Math.PI * 2
-            );
-            ctx.fillStyle = target > 0.5 ? 'rgba(255, 0, 0, 0.7)' : 'rgba(0, 0, 255, 0.7)';
-            ctx.fill();
-            ctx.strokeStyle = '#fff';
+            contourPoints.forEach((point, i) => {
+                const x = point.x * canvas.width;
+                const y = (1 - point.y) * canvas.height;
+                if (i === 0) ctx.moveTo(x, y);
+                else ctx.lineTo(x, y);
+            });
             ctx.stroke();
-        });
+        }
 
-    }, [network, resolution]);
+        // Draw gradients if enabled
+        if (showGradients) {
+            drawGradients(ctx, canvas);
+        }
+
+    }, [network, resolution, showGradients]);
 
     return (
         <div className="bg-white/5 p-4 rounded-lg">
@@ -130,6 +187,12 @@ export const DecisionBoundary: React.FC<DecisionBoundaryProps> = ({
                 <canvas
                     ref={canvasRef}
                     className="border border-gray-300/20 rounded-lg bg-gray-900"
+                    onMouseEnter={() => setIsHovering(true)}
+                    onMouseLeave={() => {
+                        setIsHovering(false);
+                        setHoverPoint(null);
+                    }}
+                    onMouseMove={handleMouseMove}
                 />
                 <div className="mt-2 text-sm text-gray-400 text-center">
                     Input X →
@@ -140,6 +203,13 @@ export const DecisionBoundary: React.FC<DecisionBoundaryProps> = ({
                 >
                     Input Y
                 </div>
+                {isHovering && hoverPoint && (
+                    <div className="absolute top-2 right-2 bg-black/80 p-2 rounded text-sm">
+                        <div>X: {hoverPoint.x.toFixed(3)}</div>
+                        <div>Y: {hoverPoint.y.toFixed(3)}</div>
+                        <div>Output: {hoverPoint.value.toFixed(3)}</div>
+                    </div>
+                )}
             </div>
             <div className="mt-4 text-sm text-gray-400">
                 <div className="flex items-center gap-2">
@@ -150,6 +220,12 @@ export const DecisionBoundary: React.FC<DecisionBoundaryProps> = ({
                     <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
                     <span>Output ≈ 0</span>
                 </div>
+                {showGradients && (
+                    <div className="flex items-center gap-2 mt-2">
+                        <div className="w-4 h-0.5 bg-white/40"></div>
+                        <span>Gradient direction</span>
+                    </div>
+                )}
             </div>
         </div>
     );
