@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { NeuralNetwork } from './lib/NeuralNetwork';
+import { NeuralNetwork, ActivationType } from './lib/NeuralNetwork';
 import { NeuralNetworkVisualizer } from './components/NeuralNetworkVisualizer';
 import { TrainingExamples, trainingExamples } from './components/TrainingExamples';
 import { NetworkConfig } from './components/NetworkConfig';
@@ -90,7 +90,7 @@ export default function Home() {
     setError(0);
   };
 
-  const handleActivationChange = (activation: string) => {
+  const handleActivationChange = (activation: ActivationType) => {
     if (!network) return;
     network.setActivation(activation);
     setErrorHistory([]);

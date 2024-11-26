@@ -1,12 +1,12 @@
 'use client';
 
 import React, { useState } from 'react';
-import { NeuralNetwork } from '../lib/NeuralNetwork';
+import { NeuralNetwork, ActivationType } from '../lib/NeuralNetwork';
 
 interface NetworkControlsProps {
     network: NeuralNetwork;
     onLoadNetwork: (network: NeuralNetwork) => void;
-    onActivationChange: (activation: string) => void;
+    onActivationChange: (activation: ActivationType) => void;
     onSpeedChange: (speed: number) => void;
 }
 
@@ -68,7 +68,7 @@ export const NetworkControls: React.FC<NetworkControlsProps> = ({
                 <div>
                     <h3 className="font-semibold mb-2">Activation Function:</h3>
                     <select
-                        onChange={(e) => onActivationChange(e.target.value)}
+                        onChange={(e) => onActivationChange(e.target.value as ActivationType)}
                         className="w-full p-2 bg-white/10 rounded"
                     >
                         <option value="sigmoid">Sigmoid</option>
