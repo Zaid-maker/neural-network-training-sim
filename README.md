@@ -1,102 +1,94 @@
 # Neural Network Training Simulator
 
-## Overview
-
-The app visualizes the training process of a neural network step by step, helping users understand concepts like forward propagation, backpropagation, loss calculation, and optimizer effects. It caters to beginners and enthusiasts interested in hands-on learning.
+An interactive web application for visualizing and training neural networks in real-time. Built with Next.js, TypeScript, and HTML Canvas.
 
 ## Features
 
-1. Dataset Selection:
+- Interactive neural network visualization
+- Real-time weight and connection updates
+- Support for forward propagation and backpropagation
+- Visual feedback on network training progress
+- Configurable network architecture (currently set to [2, 4, 3, 1])
 
-- Preloaded simple datasets (e.g., XOR, spirals, MNIST samples, linear regressions).
-- Visualize the dataset on a 2D/3D graph.
-- Allow users to upload custom datasets.
+## Getting Started
 
-2. Network Architecture Builder:
+### Prerequisites
 
-- Drag-and-drop interface to add layers (e.g., dense, convolutional, dropout).
-- Customize parameters like the number of neurons, activation functions, and layer types.
+- Bun (latest version)
 
-3. Real-time Training Visualization:
+### Installation
 
-- Display the loss curve as the network trains.
-- Show how weights and biases evolve during each epoch.
-- Visualize activation values as heatmaps or graphs for each layer.
+1. Clone the repository
 
-4. Decision Boundary Visualization:
+2. Install dependencies:
+```bash
+bun install
+```
 
-- Dynamically display how the decision boundary changes during training.
-- Highlight how the network adjusts to correctly classify points in the dataset.
+3. Start the development server:
+```bash
+bun dev
+```
 
-5. Optimizer and Hyperparameter Tweaks:
+4. Open [http://localhost:3000](http://localhost:3000) in your browser
 
-- Let users switch between optimizers (e.g., SGD, Adam, RMSprop) mid-training.
-- Change learning rate, batch size, and regularization dynamically.
-- Show comparisons of performance with different settings.
+## Usage
 
-5. Backpropagation Visualizer:
+1. The simulator starts with a neural network containing:
+   - 2 input neurons
+   - 4 neurons in the first hidden layer
+   - 3 neurons in the second hidden layer
+   - 1 output neuron
 
-- Step-by-step visualization of gradients flowing backward through the network.
-- Highlight which neurons are contributing most to the weight updates.
+2. Training the Network:
+   - Enter input values (two numbers between 0 and 1)
+   - Set the target output value
+   - Click "Forward Pass" to see the network's prediction
+   - Click "Train" to perform one training iteration
 
-6. Metrics Dashboard:
+3. Visual Feedback:
+   - Green connections represent positive weights
+   - Red connections represent negative weights
+   - The opacity of connections indicates the weight magnitude
+   - The error value shows the network's current performance
 
-- Show metrics like accuracy, precision, recall, and F1-score.
-- Allow toggling between training and validation sets for overfitting detection.
+## Example Training Tasks
 
-7. Pre-trained Models:
+1. XOR Function:
+   - Input: [0, 0] → Target: 0
+   - Input: [0, 1] → Target: 1
+   - Input: [1, 0] → Target: 1
+   - Input: [1, 1] → Target: 0
 
-- Include simple pre-trained models for comparison.
-- Allow users to experiment with fine-tuning.
+2. AND Function:
+   - Input: [0, 0] → Target: 0
+   - Input: [0, 1] → Target: 0
+   - Input: [1, 0] → Target: 0
+   - Input: [1, 1] → Target: 1
 
-8. Export and Share:
+## Technical Details
 
-- Export results as images or CSV for offline analysis.
-- Share training simulations via a unique link.
+The neural network implementation includes:
+- Sigmoid activation function
+- Gradient descent optimization
+- Mean squared error loss function
+- Configurable learning rate (default: 0.1)
 
-## Teck Stack
+## Contributing
 
-1. Frontend:
+Feel free to open issues and pull requests for:
+- Additional training examples
+- UI improvements
+- Network architecture configurations
+- Performance optimizations
 
-- Next.js
-- TypeScript
-- React
-- Tailwind CSS
+## Performance
 
-2. Backend:
+This project uses Bun for enhanced performance:
+- Faster dependency installation
+- Quick development server startup
+- Improved TypeScript compilation speed
 
-- Node.js
-- Express.js
-- Prisma ORM
-- PostgreSQL
+## License
 
-3. Neural Network:
-
-- TensorFlow.js
-
-4. Data Visualization:
-
-- Chart.js: for quick and simple visualizations
-- Plotly.js: for plotting loss curves and metrics
-
-## How It Works:
-
-1. Setup Stage:
-
-- Users select or upload a dataset.
-- Configure network architecture through a simple drag-and-drop interface.
-
-2. Training Stage:
-
-- Initiate training and watch metrics update in real-time.
-- Observe backpropagation animations to understand gradient descent.
-- Experiment with hyperparameter changes and view their impact instantly.
-
-3. Analysis Stage:
-
-- View detailed metrics, activation heatmaps, and weight distributions.
-- Compare the results of different configurations side by side.
-
-5. Save & Share:
-
-- Save configurations, metrics, and visualizations for further study or presentation.
+MIT License - feel free to use this project for learning and experimentation.

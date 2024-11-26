@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { NeuralNetwork } from './lib/NeuralNetwork';
 import { NeuralNetworkVisualizer } from './components/NeuralNetworkVisualizer';
+import { TrainingExamples } from './components/TrainingExamples';
 
 export default function Home() {
   const [network] = useState(() => new NeuralNetwork([2, 4, 3, 1]));
@@ -10,6 +11,7 @@ export default function Home() {
   const [targetValue, setTargetValue] = useState<number>(0);
   const [output, setOutput] = useState<number[]>([]);
   const [error, setError] = useState<number>(0);
+  const [trainingIterations, setTrainingIterations] = useState<number>(1);
 
   const handleForward = () => {
     const result = network.forward(inputValues);
@@ -17,9 +19,17 @@ export default function Home() {
   };
 
   const handleTrain = () => {
-    const trainError = network.train(inputValues, [targetValue]);
-    setError(trainError);
+    let totalError = 0;
+    for (let i = 0; i < trainingIterations; i++) {
+      totalError = network.train(inputValues, [targetValue]);
+    }
+    setError(totalError);
     handleForward();
+  };
+
+  const handleExampleSelect = (example: { inputs: number[], target: number }) => {
+    setInputValues(example.inputs);
+    setTargetValue(example.target);
   };
 
   return (
@@ -29,6 +39,10 @@ export default function Home() {
         
         <div className="mb-8">
           <NeuralNetworkVisualizer network={network} />
+        </div>
+
+        <div className="mb-8">
+          <TrainingExamples onSelectExample={handleExampleSelect} />
         </div>
 
         <div className="bg-white/10 p-6 rounded-lg">
@@ -57,6 +71,18 @@ export default function Home() {
               type="number"
               value={targetValue}
               onChange={(e) => setTargetValue(parseFloat(e.target.value) || 0)}
+              className="w-20 p-2 border rounded bg-white/5"
+            />
+          </div>
+
+          <div className="mb-4">
+            <h2 className="text-xl font-semibold mb-2">Training Iterations</h2>
+            <input
+              type="number"
+              min="1"
+              max="100"
+              value={trainingIterations}
+              onChange={(e) => setTrainingIterations(Math.max(1, Math.min(100, parseInt(e.target.value) || 1)))}
               className="w-20 p-2 border rounded bg-white/5"
             />
           </div>
