@@ -1,14 +1,19 @@
 # Neural Network Training Simulator
 
-An interactive web application for visualizing and training neural networks in real-time. Built with Next.js, TypeScript, and HTML Canvas.
+An interactive web application for visualizing and training neural networks in real-time. Built with Next.js, TypeScript, and Tailwind CSS.
 
 ## Features
 
 - Interactive neural network visualization
 - Real-time weight and connection updates
-- Support for forward propagation and backpropagation
-- Visual feedback on network training progress
-- Configurable network architecture (currently set to [2, 4, 3, 1])
+- Multiple activation functions (Sigmoid, ReLU, Tanh)
+- Decision boundary visualization
+- Gradient field visualization
+- Network state save/load functionality
+- Batch training support
+- Configurable network architecture
+- Dark mode support
+- PWA ready
 
 ## Getting Started
 
@@ -34,23 +39,23 @@ bun dev
 
 ## Usage
 
-1. The simulator starts with a neural network containing:
-   - 2 input neurons
-   - 4 neurons in the first hidden layer
-   - 3 neurons in the second hidden layer
-   - 1 output neuron
+1. Network Configuration:
+   - Customize the number of layers and neurons
+   - Choose activation function (Sigmoid, ReLU, or Tanh)
+   - Adjust learning rate
+   - Save and load network states
 
-2. Training the Network:
-   - Enter input values (two numbers between 0 and 1)
-   - Set the target output value
-   - Click "Forward Pass" to see the network's prediction
-   - Click "Train" to perform one training iteration
+2. Training Options:
+   - Single-step training with custom inputs
+   - Batch training on predefined examples
+   - Adjustable training speed
+   - Real-time error visualization
 
-3. Visual Feedback:
-   - Green connections represent positive weights
-   - Red connections represent negative weights
-   - The opacity of connections indicates the weight magnitude
-   - The error value shows the network's current performance
+3. Visualizations:
+   - Interactive decision boundary plot
+   - Gradient field visualization
+   - Network architecture diagram
+   - Training error history
 
 ## Example Training Tasks
 
@@ -68,26 +73,47 @@ bun dev
 
 ## Technical Details
 
-The neural network implementation includes:
-- Sigmoid activation function
+### Neural Network Implementation
+- Multiple activation functions:
+  - Sigmoid: for smooth, bounded outputs
+  - ReLU: for faster training and sparsity
+  - Tanh: for zero-centered outputs
+- Xavier/Glorot weight initialization
 - Gradient descent optimization
-- Mean squared error loss function
-- Configurable learning rate (default: 0.1)
+- Enhanced type safety with TypeScript
+- Efficient matrix operations
+
+### Visualization Features
+- Canvas-based decision boundary rendering
+- Dynamic gradient field updates
+- Interactive network architecture display
+- Real-time training metrics
+
+### Modern Web Technologies
+- Next.js 14 for server-side rendering
+- TypeScript for type safety
+- Tailwind CSS for styling
+- PWA support for offline access
+- Responsive design for all devices
+
+## Performance Optimizations
+
+- Efficient matrix operations
+- Optimized weight initialization
+- Canvas-based visualizations
+- Bun runtime benefits:
+  - Fast dependency installation
+  - Quick development server
+  - Enhanced TypeScript compilation
 
 ## Contributing
 
 Feel free to open issues and pull requests for:
-- Additional training examples
-- UI improvements
-- Network architecture configurations
+- Additional activation functions
+- New training examples
+- UI/UX improvements
 - Performance optimizations
-
-## Performance
-
-This project uses Bun for enhanced performance:
-- Faster dependency installation
-- Quick development server startup
-- Improved TypeScript compilation speed
+- Documentation enhancements
 
 ## License
 
