@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import localFont from "next/font/local";
+import { Header } from "./components/layout/Header";
 import "./globals.css";
 
 const geistSans = localFont({
@@ -92,6 +93,7 @@ export default function RootLayout({ children }: Readonly<RootLayoutProps>) {
       </head>
       <body className="min-h-screen bg-gray-950 text-gray-50 antialiased">
         <div className="relative flex min-h-screen flex-col">
+          <Header />
           <main className="flex-1">
             {children}
           </main>
