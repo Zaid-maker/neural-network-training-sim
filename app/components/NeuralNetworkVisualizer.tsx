@@ -10,8 +10,20 @@ interface NeuralNetworkVisualizerProps {
 export const NeuralNetworkVisualizer: React.FC<NeuralNetworkVisualizerProps> = ({ network }) => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const [networkState, setNetworkState] = useState(network.getNetworkState());
+    const [mounted, setMounted] = useState(false);
 
     useEffect(() => {
+        setMounted(true);
+    }, []);
+
+    useEffect(() => {
+        if (!mounted) return;
+        setNetworkState(network.getNetworkState());
+    }, [network, mounted]);
+
+    useEffect(() => {
+        if (!mounted) return;
+        
         const canvas = canvasRef.current;
         if (!canvas) return;
 
@@ -80,7 +92,11 @@ export const NeuralNetworkVisualizer: React.FC<NeuralNetworkVisualizerProps> = (
         canvas.height = 400;
         
         drawNetwork();
-    }, [networkState]);
+    }, [networkState, mounted]);
+
+    if (!mounted) {
+        return null;
+    }
 
     return (
         <div className="w-full max-w-4xl mx-auto p-4">
