@@ -92,7 +92,7 @@ export const DecisionBoundary: React.FC<DecisionBoundaryProps> = ({
         const points = network.getDecisionBoundary(0, 1, 0, 1, resolution);
         const imageData = ctx.createImageData(resolution, resolution);
 
-        points.forEach((point, i) => {
+        points.forEach(point => {
             const x = Math.floor(point.x * (resolution - 1));
             const y = Math.floor((1 - point.y) * (resolution - 1));
             const index = (y * resolution + x) * 4;
