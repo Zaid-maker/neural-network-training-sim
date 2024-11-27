@@ -40,8 +40,13 @@ export const NeuralNetworkVisualizer: React.FC<NeuralNetworkVisualizerProps> = (
         if (!canvas) return;
 
         const rect = canvas.getBoundingClientRect();
-        const x = event.clientX - rect.left;
-        const y = event.clientY - rect.top;
+        // Calculate the scale factor between canvas internal size and displayed size
+        const scaleX = canvas.width / rect.width;
+        const scaleY = canvas.height / rect.height;
+        
+        // Get mouse position in canvas coordinates
+        const x = (event.clientX - rect.left) * scaleX;
+        const y = (event.clientY - rect.top) * scaleY;
 
         const { layers, weights } = networkState;
         const layerSpacing = canvas.width / (layers.length + 1);
@@ -61,7 +66,7 @@ export const NeuralNetworkVisualizer: React.FC<NeuralNetworkVisualizerProps> = (
                         type: 'neuron',
                         layer: layerIndex,
                         neuron: neuronIndex,
-                        value: networkState.activations?.[layerIndex]?.[neuronIndex] || 0
+                        value: typeof networkState.activation === 'string' ? 0 : networkState.activation?.[layerIndex + 1]?.[neuronIndex] ?? 0
                     });
                     setTooltipPosition({ x: event.clientX, y: event.clientY });
                     return;
@@ -83,7 +88,7 @@ export const NeuralNetworkVisualizer: React.FC<NeuralNetworkVisualizerProps> = (
 
                     // Check if point is near the line
                     const distance = distanceToLine(x, y, startX, startY, endX, endY);
-                    if (distance < 5) {
+                    if (distance < 5 * Math.max(scaleX, scaleY)) { // Adjust hit area based on scale
                         setHoverState({
                             type: 'connection',
                             fromLayer: i,
