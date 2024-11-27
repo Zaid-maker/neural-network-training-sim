@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { NeuralNetwork } from '../lib/NeuralNetwork';
 
 interface DecisionBoundaryProps {
@@ -18,7 +18,7 @@ export const DecisionBoundary: React.FC<DecisionBoundaryProps> = ({
     const [isHovering, setIsHovering] = useState(false);
     const [hoverPoint, setHoverPoint] = useState<{ x: number, y: number, value: number } | null>(null);
 
-    const drawGradients = (ctx: CanvasRenderingContext2D, canvas: HTMLCanvasElement) => {
+    const drawGradients = useCallback((ctx: CanvasRenderingContext2D, canvas: HTMLCanvasElement) => {
         const gradients = network.getGradientField(0, 1, 0, 1, 10);
         
         ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
@@ -56,7 +56,7 @@ export const DecisionBoundary: React.FC<DecisionBoundaryProps> = ({
                 ctx.stroke();
             }
         });
-    };
+    }, [network]);
 
     const handleMouseMove = (event: React.MouseEvent<HTMLCanvasElement>) => {
         const canvas = canvasRef.current;
@@ -178,7 +178,7 @@ export const DecisionBoundary: React.FC<DecisionBoundaryProps> = ({
             drawGradients(ctx, canvas);
         }
 
-    }, [network, resolution, showGradients]);
+    }, [network, resolution, showGradients, drawGradients]);
 
     return (
         <div className="bg-white/5 p-4 rounded-lg">
