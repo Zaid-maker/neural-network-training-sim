@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { NeuralNetwork } from '../lib/NeuralNetwork';
 
 interface NeuralNetworkVisualizerProps {
@@ -17,6 +17,8 @@ interface HoverState {
     toNeuron?: number;
     value?: number;
     weight?: number;
+    isInput?: boolean;
+    isOutput?: boolean;
 }
 
 export const NeuralNetworkVisualizer: React.FC<NeuralNetworkVisualizerProps> = ({ network }) => {
@@ -34,6 +36,35 @@ export const NeuralNetworkVisualizer: React.FC<NeuralNetworkVisualizerProps> = (
         if (!mounted) return;
         setNetworkState(network.getNetworkState());
     }, [network, mounted]);
+
+    const getActivationValue = useCallback((layerIndex: number, neuronIndex: number): number => {
+        if (typeof networkState.activation === 'string') return 0;
+        // Input layer (index 0) has no activation, it's the input values
+        if (layerIndex === 0) {
+            return 0;
+        }
+        // For hidden and output layers, use activation values
+        return networkState.activation?.[layerIndex]?.[neuronIndex] ?? 0;
+    }, [networkState]);
+
+    const getNeuronColor = useCallback((layerIndex: number, neuronIndex: number): string => {
+        const value = getActivationValue(layerIndex, neuronIndex);
+        
+        // Use different color schemes for different layer types
+        if (layerIndex === 0) {
+            // Input layer: Blue gradient
+            const intensity = Math.floor(value * 255);
+            return `rgb(0, ${intensity}, ${intensity})`;
+        } else if (layerIndex === networkState.layers.length - 1) {
+            // Output layer: Green gradient
+            const intensity = Math.floor(value * 255);
+            return `rgb(0, ${intensity}, 0)`;
+        } else {
+            // Hidden layers: Purple gradient
+            const intensity = Math.floor(value * 255);
+            return `rgb(${intensity}, 0, ${intensity})`;
+        }
+    }, [networkState, getActivationValue]);
 
     const handleMouseMove = (event: React.MouseEvent<HTMLCanvasElement>) => {
         const canvas = canvasRef.current;
@@ -62,11 +93,14 @@ export const NeuralNetworkVisualizer: React.FC<NeuralNetworkVisualizerProps> = (
                 const distance = Math.sqrt(Math.pow(x - layerX, 2) + Math.pow(y - neuronY, 2));
 
                 if (distance <= neuronRadius) {
+                    const value = getActivationValue(layerIndex, neuronIndex);
                     setHoverState({
                         type: 'neuron',
                         layer: layerIndex,
                         neuron: neuronIndex,
-                        value: typeof networkState.activation === 'string' ? 0 : networkState.activation?.[layerIndex + 1]?.[neuronIndex] ?? 0
+                        value,
+                        isInput: layerIndex === 0,
+                        isOutput: layerIndex === layers.length - 1
                     });
                     setTooltipPosition({ x: event.clientX, y: event.clientY });
                     return;
@@ -193,7 +227,10 @@ export const NeuralNetworkVisualizer: React.FC<NeuralNetworkVisualizerProps> = (
                         } else {
                             ctx.lineWidth = 1;
                             const alpha = Math.abs(weight);
-                            ctx.strokeStyle = weight > 0 ? `rgba(0, 255, 0, ${alpha})` : `rgba(255, 0, 0, ${alpha})`;
+                            // Use different colors for positive and negative weights
+                            ctx.strokeStyle = weight > 0 
+                                ? `rgba(0, 255, 0, ${alpha})` // Green for positive
+                                : `rgba(255, 0, 0, ${alpha})`; // Red for negative
                         }
                         ctx.stroke();
                     }
@@ -210,22 +247,33 @@ export const NeuralNetworkVisualizer: React.FC<NeuralNetworkVisualizerProps> = (
                     ctx.beginPath();
                     ctx.arc(x, y, neuronRadius, 0, Math.PI * 2);
 
-                    // Highlight hovered neuron
+                    // Highlight hovered neuron or use color based on layer type and activation
                     if (hoverState?.type === 'neuron' &&
                         hoverState.layer === layerIndex &&
                         hoverState.neuron === i) {
                         ctx.fillStyle = '#00ff00';
                     } else {
-                        // Color based on activation value
-                        const activation = networkState.activations?.[layerIndex]?.[i] || 0;
-                        const intensity = Math.floor(activation * 255);
-                        ctx.fillStyle = `rgb(${intensity}, ${intensity}, ${intensity})`;
+                        ctx.fillStyle = getNeuronColor(layerIndex, i);
                     }
                     
                     ctx.fill();
                     ctx.strokeStyle = '#000';
                     ctx.lineWidth = 1;
                     ctx.stroke();
+
+                    // Add layer labels
+                    if (i === 0) {
+                        ctx.fillStyle = '#fff';
+                        ctx.font = '12px sans-serif';
+                        ctx.textAlign = 'center';
+                        ctx.fillText(
+                            layerIndex === 0 ? 'Input' :
+                            layerIndex === layers.length - 1 ? 'Output' :
+                            `Hidden ${layerIndex}`,
+                            x,
+                            canvas.height - 10
+                        );
+                    }
                 }
             });
         };
@@ -235,7 +283,7 @@ export const NeuralNetworkVisualizer: React.FC<NeuralNetworkVisualizerProps> = (
         canvas.height = 400;
         
         drawNetwork();
-    }, [networkState, mounted, hoverState]);
+    }, [networkState, mounted, hoverState, getNeuronColor]);
 
     if (!mounted) {
         return null;
@@ -259,9 +307,9 @@ export const NeuralNetworkVisualizer: React.FC<NeuralNetworkVisualizerProps> = (
                 >
                     {hoverState.type === 'neuron' ? (
                         <>
-                            <div>Layer: {hoverState.layer}</div>
+                            <div>Layer: {hoverState.layer} ({hoverState.isInput ? 'Input' : hoverState.isOutput ? 'Output' : 'Hidden'})</div>
                             <div>Neuron: {hoverState.neuron}</div>
-                            <div>Activation: {hoverState.value?.toFixed(4)}</div>
+                            <div>{hoverState.isInput ? 'Input' : 'Activation'}: {hoverState.value === undefined ? 'N/A' : hoverState.value.toFixed(4)}</div>
                         </>
                     ) : (
                         <>
