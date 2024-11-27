@@ -114,11 +114,13 @@ export default function Home() {
   }
 
   return (
-    <main className="flex min-h-screen flex-col items-center p-24">
-      <div className="z-10 max-w-5xl w-full items-center justify-between font-mono text-sm">
-        <h1 className="text-4xl font-bold mb-8 text-center">Neural Network Training Simulator</h1>
+    <main className="flex min-h-screen flex-col items-center p-4 sm:p-8 md:p-16 lg:p-24">
+      <div className="z-10 w-full max-w-7xl">
+        <h1 className="mb-6 text-2xl sm:text-3xl md:text-4xl font-bold text-center">
+          Neural Network Training Simulator
+        </h1>
         
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 md:gap-8 mb-6 sm:mb-8">
           <NetworkConfig
             onConfigChange={handleConfigChange}
             currentLayers={network.getNetworkState().layers}
@@ -133,22 +135,22 @@ export default function Home() {
           />
         </div>
 
-        <div className="mb-8">
+        <div className="mb-6 sm:mb-8 overflow-x-auto">
           <NeuralNetworkVisualizer network={network} />
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
-          <div>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 md:gap-8">
+          <div className="space-y-4 sm:space-y-6 md:space-y-8">
             <TrainingExamples onSelectExample={handleExampleSelect} />
-            <div className="mt-8">
+            <div className="overflow-x-auto">
               <DecisionBoundary network={network} />
             </div>
           </div>
           
-          <div className="space-y-8">
+          <div className="space-y-4 sm:space-y-6 md:space-y-8">
             <div className="bg-white/5 p-4 rounded-lg">
-              <div className="mb-4">
-                <h2 className="text-xl font-semibold mb-2">Training Controls</h2>
+              <div className="space-y-4">
+                <h2 className="text-lg sm:text-xl font-semibold">Training Controls</h2>
                 <select
                   value={selectedExample}
                   onChange={(e) => setSelectedExample(e.target.value)}
@@ -162,12 +164,12 @@ export default function Home() {
                 <button
                   onClick={handleBatchTrain}
                   disabled={isBatchTraining}
-                  className="w-full px-4 py-2 bg-purple-500 text-white rounded hover:bg-purple-600 disabled:opacity-50 disabled:cursor-not-allowed mb-4"
+                  className="w-full px-4 py-2 bg-purple-500 text-white rounded hover:bg-purple-600 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {isBatchTraining ? 'Training...' : 'Train on Full Dataset'}
                 </button>
 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <h3 className="font-semibold mb-2">Single Training:</h3>
                     <input
@@ -181,13 +183,13 @@ export default function Home() {
                     <div className="flex gap-2">
                       <button
                         onClick={handleForward}
-                        className="flex-1 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+                        className="flex-1 px-3 py-2 text-sm sm:px-4 sm:text-base bg-blue-500 text-white rounded hover:bg-blue-600"
                       >
                         Forward
                       </button>
                       <button
                         onClick={handleTrain}
-                        className="flex-1 px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600"
+                        className="flex-1 px-3 py-2 text-sm sm:px-4 sm:text-base bg-green-500 text-white rounded hover:bg-green-600"
                       >
                         Train
                       </button>
@@ -196,7 +198,7 @@ export default function Home() {
 
                   <div>
                     <h3 className="font-semibold mb-2">Current Values:</h3>
-                    <div className="space-y-2">
+                    <div className="space-y-2 text-sm sm:text-base">
                       <div className="flex justify-between">
                         <span>Inputs:</span>
                         <span className="font-mono">[{inputValues.join(', ')}]</span>
