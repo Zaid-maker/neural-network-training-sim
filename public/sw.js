@@ -1,4 +1,6 @@
 const CACHE_NAME = 'nn-simulator-v1';
+const DYNAMIC_CACHE = 'nn-simulator-dynamic-v1';
+
 const ASSETS_TO_CACHE = [
   '/',
   '/index.html',
@@ -10,8 +12,19 @@ const ASSETS_TO_CACHE = [
   '/vercel.svg',
   '/window.svg',
   '/_next/static/css/app.css',
-  '/_next/static/js/main.js'
+  '/_next/static/js/main.js',
+  '/offline.html'
 ];
+
+// Helper function to determine if a request is an API call
+const isApiRequest = (request) => {
+  return request.url.includes('/api/');
+};
+
+// Helper function to determine if a request is for a static asset
+const isStaticAsset = (url) => {
+  return ASSETS_TO_CACHE.some(asset => url.endsWith(asset));
+};
 
 // Install event - cache assets
 self.addEventListener('install', (event) => {
@@ -29,7 +42,7 @@ self.addEventListener('activate', (event) => {
     caches.keys().then((cacheNames) => {
       return Promise.all(
         cacheNames
-          .filter((name) => name !== CACHE_NAME)
+          .filter((name) => name !== CACHE_NAME && name !== DYNAMIC_CACHE)
           .map((name) => caches.delete(name))
       );
     })
@@ -47,36 +60,55 @@ self.addEventListener('fetch', (event) => {
 
   event.respondWith(
     caches.match(event.request).then((cachedResponse) => {
-      // Return cached response if found
-      if (cachedResponse) {
+      if (cachedResponse && isStaticAsset(event.request.url)) {
+        // Return cached response for static assets
         return cachedResponse;
       }
 
-      // Otherwise fetch from network
-      return fetch(event.request).then((response) => {
-        // Don't cache non-successful responses
-        if (!response || response.status !== 200 || response.type !== 'basic') {
+      // For API requests and dynamic content, try network first
+      return fetch(event.request)
+        .then((response) => {
+          if (!response || response.status !== 200) {
+            throw new Error('Network error');
+          }
+
+          // Clone the response
+          const responseToCache = response.clone();
+
+          // Cache API responses in the dynamic cache
+          if (isApiRequest(event.request)) {
+            caches.open(DYNAMIC_CACHE).then((cache) => {
+              cache.put(event.request, responseToCache);
+            });
+          }
+
           return response;
-        }
-
-        // Clone the response as it can only be consumed once
-        const responseToCache = response.clone();
-
-        // Cache the new resource
-        caches.open(CACHE_NAME).then((cache) => {
-          cache.put(event.request, responseToCache);
+        })
+        .catch(() => {
+          // If network fails, try to return cached response
+          return cachedResponse || caches.match('/offline.html');
         });
-
-        return response;
-      }).catch(() => {
-        // Return a fallback for HTML pages
-        if (event.request.headers.get('accept').includes('text/html')) {
-          return caches.match('/');
-        }
-        
-        // Otherwise, let the error propagate
-        throw new Error('Network error');
-      });
     })
   );
+});
+
+// Handle sync events for offline data
+self.addEventListener('sync', (event) => {
+  if (event.tag === 'sync-neural-networks') {
+    event.waitUntil(syncNeuralNetworks());
+  }
+});
+
+// Periodic sync for background updates
+self.addEventListener('periodicsync', (event) => {
+  if (event.tag === 'update-neural-networks') {
+    event.waitUntil(updateNeuralNetworks());
+  }
+});
+
+// Listen for messages from the client
+self.addEventListener('message', (event) => {
+  if (event.data.type === 'SKIP_WAITING') {
+    self.skipWaiting();
+  }
 });

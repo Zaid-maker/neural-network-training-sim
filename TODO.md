@@ -84,9 +84,9 @@
 - [ ] Add ensemble learning support
 
 ## 📱 Progressive Web App
-- [ ] Add manifest.json
-- [ ] Implement service worker
-- [ ] Add offline support
+- [x] Add manifest.json
+- [x] Implement service worker
+- [x] Add offline support
 - [ ] Add install prompt
 - [ ] Optimize assets
 - [ ] Add push notifications
