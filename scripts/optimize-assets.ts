@@ -2,31 +2,50 @@ import { optimizeImage } from '../app/utils/imageOptimizer';
 import { promises as fs } from 'fs';
 import path from 'path';
 import sharp from 'sharp';
-import svgo from 'svgo';
+import { optimize, Config } from 'svgo';
 
 const PUBLIC_DIR = path.join(process.cwd(), 'public');
 const OPTIMIZED_DIR = path.join(PUBLIC_DIR, 'optimized');
 
 // SVG optimization configuration
-const svgoConfig = {
+const svgoConfig: Config = {
+  multipass: true,
   plugins: [
-    'preset-default',
+    {
+      name: 'preset-default',
+      params: {
+        overrides: {
+          removeViewBox: false,
+          removeTitle: false,
+        },
+      },
+    },
     'removeDimensions',
-    'removeViewBox',
-    'removeXMLNS',
-    'sortAttrs',
+    {
+      name: 'sortAttrs',
+      params: {
+        xmlnsOrder: 'alphabetical',
+      },
+    },
     {
       name: 'removeAttrs',
-      params: { attrs: '(data-name)' }
-    }
-  ]
+      params: {
+        attrs: ['data-name'],
+      },
+    },
+  ],
 };
 
 async function optimizeSvg(inputPath: string, outputPath: string) {
-  const svg = await fs.readFile(inputPath, 'utf8');
-  const result = await svgo.optimize(svg, { path: inputPath, ...svgoConfig });
-  await fs.writeFile(outputPath, result.data);
-  console.log(`Optimized SVG: ${outputPath}`);
+  try {
+    const svg = await fs.readFile(inputPath, 'utf8');
+    const result = optimize(svg, svgoConfig);
+    await fs.writeFile(outputPath, result.data);
+    console.log(`Optimized SVG: ${outputPath}`);
+  } catch (error) {
+    console.error(`Failed to optimize SVG ${inputPath}:`, error);
+    throw error; // Re-throw to handle in the calling function
+  }
 }
 
 async function generateFavicons() {
