@@ -34,13 +34,13 @@ export const NeuralNetworkVisualizer: React.FC<NeuralNetworkVisualizerProps> = (
   const [mounted, setMounted] = useState(false);
   const [hoverState, setHoverState] = useState<HoverState | null>(null);
   const [tooltipPosition, setTooltipPosition] = useState<TooltipPosition | null>(null);
-  const hoverDebounceRef = useRef<NodeJS.Timeout>();
+  const hoverDebounceRef = useRef<number>();
 
   useEffect(() => {
     setMounted(true);
     return () => {
       if (hoverDebounceRef.current) {
-        clearTimeout(hoverDebounceRef.current);
+        window.clearTimeout(hoverDebounceRef.current);
       }
     };
   }, []);
@@ -55,10 +55,11 @@ export const NeuralNetworkVisualizer: React.FC<NeuralNetworkVisualizerProps> = (
       if (typeof networkState.activation === 'string') return 0;
       // Input layer (index 0) has no activation, it's the input values
       if (layerIndex === 0) {
-        return networkState.inputs?.[neuronIndex] ?? 0;
+        if (!Array.isArray(networkState.inputValues)) return 0;
+        return networkState.inputValues[neuronIndex] ?? 0;
       }
       // For hidden and output layers, use activation values
-      return networkState.activation?.[layerIndex - 1]?.[neuronIndex] ?? 0;
+      return networkState.activationValues?.[layerIndex - 1]?.[neuronIndex] ?? 0;
     },
     [networkState]
   );
@@ -85,10 +86,10 @@ export const NeuralNetworkVisualizer: React.FC<NeuralNetworkVisualizerProps> = (
 
   const updateHoverState = useCallback((newState: HoverState | null, event: React.MouseEvent<HTMLCanvasElement>) => {
     if (hoverDebounceRef.current) {
-      clearTimeout(hoverDebounceRef.current);
+      window.clearTimeout(hoverDebounceRef.current);
     }
 
-    hoverDebounceRef.current = setTimeout(() => {
+    hoverDebounceRef.current = window.setTimeout(() => {
       setHoverState(newState);
       if (newState && containerRef.current) {
         const containerRect = containerRef.current.getBoundingClientRect();
@@ -185,7 +186,7 @@ export const NeuralNetworkVisualizer: React.FC<NeuralNetworkVisualizerProps> = (
 
   const handleMouseLeave = useCallback(() => {
     if (hoverDebounceRef.current) {
-      clearTimeout(hoverDebounceRef.current);
+      window.clearTimeout(hoverDebounceRef.current);
     }
     setHoverState(null);
     setTooltipPosition(null);

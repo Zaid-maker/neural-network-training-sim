@@ -4,6 +4,8 @@ export type NetworkState = {
   biases: number[][];
   activation: ActivationType;
   learningRate: number;
+  inputValues?: number[];
+  activationValues?: number[][];
 };
 
 export type ActivationType = 'sigmoid' | 'tanh' | 'relu';
@@ -18,6 +20,8 @@ export class NeuralNetwork {
   private activation: ActivationType;
   private activationFn: ActivationFunction;
   private activationDerivative: ActivationFunction;
+  private currentInputs: number[] = [];
+  private currentActivations: number[][] = [];
 
   constructor(layers: number[], learningRate: number = 0.1) {
     this.layers = layers;
@@ -85,32 +89,28 @@ export class NeuralNetwork {
   }
 
   forward(inputs: number[]): number[] {
-    if (inputs.length !== this.layers[0]) {
-      throw new Error(`Input size mismatch. Expected ${this.layers[0]}, got ${inputs.length}`);
-    }
-
+    this.currentInputs = [...inputs];
+    this.currentActivations = [];
+    
     let currentLayer = inputs;
-    const activations: number[][] = [inputs];
-    const zValues: number[][] = [];
-
+    
+    // Process each layer
     for (let i = 0; i < this.weights.length; i++) {
-      const z: number[] = [];
-      const activation: number[] = [];
-
-      for (let j = 0; j < this.weights[i].length; j++) {
+      const nextLayer: number[] = new Array(this.layers[i + 1]).fill(0);
+      
+      // Calculate weighted sum for each neuron in the next layer
+      for (let j = 0; j < this.layers[i + 1]; j++) {
         let sum = this.biases[i][j];
-        for (let k = 0; k < this.weights[i][j].length; k++) {
-          sum += this.weights[i][j][k] * currentLayer[k];
+        for (let k = 0; k < this.layers[i]; k++) {
+          sum += currentLayer[k] * this.weights[i][j][k];
         }
-        z.push(sum);
-        activation.push(this.activationFn(sum));
+        nextLayer[j] = this.activationFn(sum);
       }
-
-      zValues.push(z);
-      activations.push(activation);
-      currentLayer = activation;
+      
+      this.currentActivations.push([...nextLayer]);
+      currentLayer = nextLayer;
     }
-
+    
     return currentLayer;
   }
 
@@ -136,7 +136,7 @@ export class NeuralNetwork {
       for (let j = 0; j < this.weights[i].length; j++) {
         let sum = this.biases[i][j];
         for (let k = 0; k < this.weights[i][j].length; k++) {
-          sum += this.weights[i][j][k] * currentLayer[k];
+          sum += currentLayer[k] * this.weights[i][j][k];
         }
         z.push(sum);
         activation.push(this.activationFn(sum));
@@ -192,11 +192,13 @@ export class NeuralNetwork {
 
   getNetworkState(): NetworkState {
     return {
-      layers: [...this.layers],
-      weights: JSON.parse(JSON.stringify(this.weights)),
-      biases: JSON.parse(JSON.stringify(this.biases)),
+      layers: this.layers,
+      weights: this.weights,
+      biases: this.biases,
       activation: this.activation,
       learningRate: this.learningRate,
+      inputValues: this.currentInputs,
+      activationValues: this.currentActivations
     };
   }
 
