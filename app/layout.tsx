@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next';
 import localFont from 'next/font/local';
 import { Header } from './components/layout/Header';
+import { InstallPrompt } from './components/InstallPrompt';
 import './globals.css';
 
 const geistSans = localFont({
@@ -133,6 +134,7 @@ export default function RootLayout({ children }: Readonly<RootLayoutProps>) {
           <div id="offline-message" className="hidden fixed bottom-4 right-4 bg-yellow-500 text-white px-4 py-2 rounded shadow-lg">
             You are currently offline. Some features may be limited.
           </div>
+          <InstallPrompt />
         </div>
       </body>
     </html>

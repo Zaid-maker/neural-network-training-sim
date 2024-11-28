@@ -25,6 +25,8 @@ interface AppSettings {
   theme: 'light' | 'dark';
   autoSave: boolean;
   offlineMode: boolean;
+  lastInstallPrompt?: number;
+  installDismissCount?: number;
 }
 
 class StorageManager {
