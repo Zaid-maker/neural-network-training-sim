@@ -4,11 +4,18 @@ import { ClientLayout } from './components/layout/ClientLayout';
 import './globals.css';
 import React from 'react';
 
-const satoshi = localFont({
-  src: '../public/fonts/Satoshi-Variable.woff2',
-  variable: '--font-satoshi',
-  display: 'swap',
+const geistSans = localFont({
+  src: './fonts/GeistVF.woff',
+  variable: '--font-geist-sans',
   weight: '100 900',
+  display: 'swap',
+});
+
+const geistMono = localFont({
+  src: './fonts/GeistMonoVF.woff',
+  variable: '--font-geist-mono',
+  weight: '100 900',
+  display: 'swap',
 });
 
 export const metadata: Metadata = {
@@ -73,7 +80,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className={satoshi.variable} suppressHydrationWarning>
+    <html lang="en" className={`${geistSans.variable} ${geistMono.variable}`} suppressHydrationWarning>
       <body className="min-h-screen bg-gray-950 text-gray-50 antialiased">
         <ClientLayout>{children}</ClientLayout>
       </body>
