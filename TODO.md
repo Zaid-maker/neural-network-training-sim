@@ -44,7 +44,7 @@
 - [ ] Add tooltips for UI controls
 
 ## 🐛 Bug Fixes & Optimizations
-- [ x ] Fix hover state bugs in network visualizer
+- [x] Fix hover state bugs in network visualizer
 - [ ] Optimize large network rendering
 - [ ] Improve memory management during training
 - [ ] Fix mobile touch event handling
