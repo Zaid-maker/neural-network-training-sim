@@ -1,3 +1,5 @@
+'use client';
+
 import type { Metadata, Viewport } from 'next';
 import localFont from 'next/font/local';
 import { Header } from './components/layout/Header';

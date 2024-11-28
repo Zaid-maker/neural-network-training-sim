@@ -88,7 +88,7 @@
 - [x] Implement service worker
 - [x] Add offline support
 - [x] Add install prompt
-- [ ] Optimize assets
+- [x] Optimize assets
 - [ ] Add push notifications
 
 ## 🌟 Nice-to-Have Features
