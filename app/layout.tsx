@@ -70,11 +70,18 @@ export const viewport: Viewport = {
   colorScheme: 'dark',
 };
 
+import { useEffect } from 'react';
+import { registerServiceWorker } from './utils/serviceWorker';
+
 interface RootLayoutProps {
   children: React.ReactNode;
 }
 
 export default function RootLayout({ children }: Readonly<RootLayoutProps>) {
+  useEffect(() => {
+    registerServiceWorker();
+  }, []);
+
   return (
     <html
       lang="en"
@@ -82,10 +89,15 @@ export default function RootLayout({ children }: Readonly<RootLayoutProps>) {
       suppressHydrationWarning
     >
       <head>
+        <link rel="manifest" href="/manifest.json" />
+        <meta name="theme-color" content="#000000" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+        <meta name="description" content="Interactive neural network training visualization and experimentation platform" />
         <link rel="icon" href="/favicon.ico" sizes="any" />
         <link rel="icon" href="/icon.svg" type="image/svg+xml" sizes="any" />
         <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
         <link rel="manifest" href="/manifest.json" />
+        <title>Neural Network Training Simulator</title>
       </head>
       <body className="min-h-screen bg-gray-950 text-gray-50 antialiased">
         <div className="relative flex min-h-screen flex-col">
@@ -118,6 +130,9 @@ export default function RootLayout({ children }: Readonly<RootLayoutProps>) {
               </div>
             </div>
           </footer>
+          <div id="offline-message" className="hidden fixed bottom-4 right-4 bg-yellow-500 text-white px-4 py-2 rounded shadow-lg">
+            You are currently offline. Some features may be limited.
+          </div>
         </div>
       </body>
     </html>

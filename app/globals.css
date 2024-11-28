@@ -19,3 +19,23 @@ body {
   background: var(--background);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+/* Offline message styles */
+#offline-message {
+  opacity: 0;
+  transition: opacity 0.3s ease-in-out;
+}
+
+#offline-message.visible {
+  opacity: 1;
+}
+
+/* Add PWA styles for iOS */
+@media (display-mode: standalone) {
+  body {
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    -webkit-tap-highlight-color: transparent;
+    overscroll-behavior-y: none;
+  }
+}
