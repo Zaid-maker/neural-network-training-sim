@@ -87,7 +87,7 @@
 - [x] Add manifest.json
 - [x] Implement service worker
 - [x] Add offline support
-- [ ] Add install prompt
+- [x] Add install prompt
 - [ ] Optimize assets
 - [ ] Add push notifications
 
