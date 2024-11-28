@@ -21,18 +21,28 @@ interface HoverState {
   isOutput?: boolean;
 }
 
+interface TooltipPosition {
+  x: number;
+  y: number;
+  boundingRect: DOMRect;
+}
+
 export const NeuralNetworkVisualizer: React.FC<NeuralNetworkVisualizerProps> = ({ network }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
   const [networkState, setNetworkState] = useState(network.getNetworkState());
   const [mounted, setMounted] = useState(false);
   const [hoverState, setHoverState] = useState<HoverState | null>(null);
-  const [tooltipPosition, setTooltipPosition] = useState<{
-    x: number;
-    y: number;
-  } | null>(null);
+  const [tooltipPosition, setTooltipPosition] = useState<TooltipPosition | null>(null);
+  const hoverDebounceRef = useRef<NodeJS.Timeout>();
 
   useEffect(() => {
     setMounted(true);
+    return () => {
+      if (hoverDebounceRef.current) {
+        clearTimeout(hoverDebounceRef.current);
+      }
+    };
   }, []);
 
   useEffect(() => {
@@ -45,10 +55,10 @@ export const NeuralNetworkVisualizer: React.FC<NeuralNetworkVisualizerProps> = (
       if (typeof networkState.activation === 'string') return 0;
       // Input layer (index 0) has no activation, it's the input values
       if (layerIndex === 0) {
-        return 0;
+        return networkState.inputs?.[neuronIndex] ?? 0;
       }
       // For hidden and output layers, use activation values
-      return networkState.activation?.[layerIndex]?.[neuronIndex] ?? 0;
+      return networkState.activation?.[layerIndex - 1]?.[neuronIndex] ?? 0;
     },
     [networkState]
   );
@@ -56,37 +66,61 @@ export const NeuralNetworkVisualizer: React.FC<NeuralNetworkVisualizerProps> = (
   const getNeuronColor = useCallback(
     (layerIndex: number, neuronIndex: number): string => {
       const value = getActivationValue(layerIndex, neuronIndex);
+      const intensity = Math.floor((Math.tanh(value) + 1) * 127.5); // Scale to 0-255
 
       // Use different color schemes for different layer types
       if (layerIndex === 0) {
         // Input layer: Blue gradient
-        const intensity = Math.floor(value * 255);
         return `rgb(0, ${intensity}, ${intensity})`;
       } else if (layerIndex === networkState.layers.length - 1) {
         // Output layer: Green gradient
-        const intensity = Math.floor(value * 255);
         return `rgb(0, ${intensity}, 0)`;
       } else {
         // Hidden layers: Purple gradient
-        const intensity = Math.floor(value * 255);
         return `rgb(${intensity}, 0, ${intensity})`;
       }
     },
     [networkState, getActivationValue]
   );
 
-  const handleMouseMove = (event: React.MouseEvent<HTMLCanvasElement>) => {
+  const updateHoverState = useCallback((newState: HoverState | null, event: React.MouseEvent<HTMLCanvasElement>) => {
+    if (hoverDebounceRef.current) {
+      clearTimeout(hoverDebounceRef.current);
+    }
+
+    hoverDebounceRef.current = setTimeout(() => {
+      setHoverState(newState);
+      if (newState && containerRef.current) {
+        const containerRect = containerRef.current.getBoundingClientRect();
+        const x = Math.min(
+          Math.max(event.clientX + 10, containerRect.left + 10),
+          containerRect.right - 200
+        );
+        const y = Math.min(
+          Math.max(event.clientY + 10, containerRect.top + 10),
+          containerRect.bottom - 100
+        );
+        setTooltipPosition({ x, y, boundingRect: containerRect });
+      } else {
+        setTooltipPosition(null);
+      }
+    }, 50); // 50ms debounce
+  }, []);
+
+  const handleMouseMove = useCallback((event: React.MouseEvent<HTMLCanvasElement>) => {
     const canvas = canvasRef.current;
     if (!canvas) return;
 
     const rect = canvas.getBoundingClientRect();
+    const dpr = window.devicePixelRatio || 1;
+    
     // Calculate the scale factor between canvas internal size and displayed size
-    const scaleX = canvas.width / rect.width;
-    const scaleY = canvas.height / rect.height;
+    const scaleX = canvas.width / (rect.width * dpr);
+    const scaleY = canvas.height / (rect.height * dpr);
 
     // Get mouse position in canvas coordinates
-    const x = (event.clientX - rect.left) * scaleX;
-    const y = (event.clientY - rect.top) * scaleY;
+    const x = (event.clientX - rect.left) * scaleX * dpr;
+    const y = (event.clientY - rect.top) * scaleY * dpr;
 
     const { layers, weights } = networkState;
     const layerSpacing = canvas.width / (layers.length + 1);
@@ -101,23 +135,24 @@ export const NeuralNetworkVisualizer: React.FC<NeuralNetworkVisualizerProps> = (
         const neuronY = (neuronIndex + 1) * (canvas.height / (layerSize + 1));
         const distance = Math.sqrt(Math.pow(x - layerX, 2) + Math.pow(y - neuronY, 2));
 
-        if (distance <= neuronRadius) {
+        if (distance <= neuronRadius * 1.5) { // Increased hit area
           const value = getActivationValue(layerIndex, neuronIndex);
-          setHoverState({
+          updateHoverState({
             type: 'neuron',
             layer: layerIndex,
             neuron: neuronIndex,
             value,
             isInput: layerIndex === 0,
             isOutput: layerIndex === layers.length - 1,
-          });
-          setTooltipPosition({ x: event.clientX, y: event.clientY });
+          }, event);
           return;
         }
       }
     }
 
     // Check if hovering over connections
+    const connectionHitArea = 8 * Math.max(scaleX, scaleY) * dpr;
+    
     for (let i = 0; i < weights.length; i++) {
       const leftLayer = layers[i];
       const rightLayer = layers[i + 1];
@@ -129,33 +164,32 @@ export const NeuralNetworkVisualizer: React.FC<NeuralNetworkVisualizerProps> = (
           const endX = (i + 2) * layerSpacing;
           const endY = (j + 1) * (canvas.height / (rightLayer + 1));
 
-          // Check if point is near the line
           const distance = distanceToLine(x, y, startX, startY, endX, endY);
-          if (distance < 5 * Math.max(scaleX, scaleY)) {
-            // Adjust hit area based on scale
-            setHoverState({
+          if (distance < connectionHitArea) {
+            updateHoverState({
               type: 'connection',
               fromLayer: i,
               fromNeuron: k,
               toLayer: i + 1,
               toNeuron: j,
               weight: weights[i][j][k],
-            });
-            setTooltipPosition({ x: event.clientX, y: event.clientY });
+            }, event);
             return;
           }
         }
       }
     }
 
-    setHoverState(null);
-    setTooltipPosition(null);
-  };
+    updateHoverState(null, event);
+  }, [networkState, getActivationValue, updateHoverState]);
 
-  const handleMouseLeave = () => {
+  const handleMouseLeave = useCallback(() => {
+    if (hoverDebounceRef.current) {
+      clearTimeout(hoverDebounceRef.current);
+    }
     setHoverState(null);
     setTooltipPosition(null);
-  };
+  }, []);
 
   const distanceToLine = (x: number, y: number, x1: number, y1: number, x2: number, y2: number) => {
     const A = x - x1;
@@ -313,7 +347,7 @@ export const NeuralNetworkVisualizer: React.FC<NeuralNetworkVisualizerProps> = (
   }
 
   return (
-    <div className="relative mx-auto w-full max-w-4xl p-4">
+    <div ref={containerRef} className="relative mx-auto w-full max-w-4xl p-4">
       <canvas
         ref={canvasRef}
         className="w-full rounded-lg border border-gray-300 bg-gray-900"
@@ -322,34 +356,38 @@ export const NeuralNetworkVisualizer: React.FC<NeuralNetworkVisualizerProps> = (
       />
       {tooltipPosition && hoverState && (
         <div
-          className="pointer-events-none absolute rounded bg-black/80 p-2 text-sm text-white"
+          className="pointer-events-none absolute z-10 rounded bg-black/80 p-2 text-sm text-white shadow-lg"
           style={{
-            left: tooltipPosition.x + 10,
-            top: tooltipPosition.y + 10,
+            left: tooltipPosition.x,
+            top: tooltipPosition.y,
+            maxWidth: '200px',
           }}
         >
           {hoverState.type === 'neuron' ? (
             <>
-              <div>
-                Layer: {hoverState.layer} (
-                {hoverState.isInput ? 'Input' : hoverState.isOutput ? 'Output' : 'Hidden'})
+              <div className="font-semibold">
+                {hoverState.isInput
+                  ? 'Input'
+                  : hoverState.isOutput
+                  ? 'Output'
+                  : 'Hidden'} Layer {hoverState.layer}
               </div>
               <div>Neuron: {hoverState.neuron}</div>
               <div>
-                {hoverState.isInput ? 'Input' : 'Activation'}:
-                {hoverState.value === undefined ? 'N/A' : hoverState.value.toFixed(4)}
-                {hoverState.isOutput ? '' : ` (${networkState.activation || 'N/A'})`}
+                {hoverState.isInput ? 'Input' : 'Activation'}:{' '}
+                {hoverState.value?.toFixed(4) ?? 'N/A'}
               </div>
             </>
           ) : (
             <>
+              <div className="font-semibold">Connection</div>
               <div>
                 From: Layer {hoverState.fromLayer}, Neuron {hoverState.fromNeuron}
               </div>
               <div>
                 To: Layer {hoverState.toLayer}, Neuron {hoverState.toNeuron}
               </div>
-              <div>Weight: {hoverState.weight?.toFixed(4)}</div>
+              <div>Weight: {hoverState.weight?.toFixed(4) ?? 'N/A'}</div>
             </>
           )}
         </div>
