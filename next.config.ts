@@ -1,5 +1,5 @@
-import type { NextConfig } from "next";
 import crypto from 'crypto';
+import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   /* config options here */
@@ -72,12 +72,11 @@ const nextConfig: NextConfig = {
             },
             shared: {
               name(module: any, chunks: any[]) {
-                return crypto
-                  .createHash('sha1')
-                  .update(
-                    chunks.reduce((acc, chunk) => acc + chunk.name, '')
-                  )
-                  .digest('hex') + (dev ? '-dev' : '-prod');
+                const hash = crypto.createHash('sha1');
+                hash.update(
+                  chunks.reduce((acc, chunk) => acc + chunk.name, '')
+                );
+                return hash.digest('hex') + (dev ? '-dev' : '-prod');
               },
               priority: 10,
               minChunks: 2,
