@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState, useMemo } from 'react';
 import { NeuralNetwork } from '../lib/NeuralNetwork';
 
 interface NeuralNetworkVisualizerProps {
@@ -30,25 +30,66 @@ interface TooltipPosition {
 export const NeuralNetworkVisualizer: React.FC<NeuralNetworkVisualizerProps> = ({ network }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const offscreenCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const [networkState, setNetworkState] = useState(network.getNetworkState());
   const [mounted, setMounted] = useState(false);
   const [hoverState, setHoverState] = useState<HoverState | null>(null);
   const [tooltipPosition, setTooltipPosition] = useState<TooltipPosition | null>(null);
   const hoverDebounceRef = useRef<number>();
+  const renderRequestRef = useRef<number>();
+  const [detailLevel, setDetailLevel] = useState<'high' | 'medium' | 'low'>('high');
 
+  // Memoize network dimensions
+  const networkDimensions = useMemo(() => {
+    const maxNeuronsPerLayer = Math.max(...networkState.layers);
+    return {
+      isLargeNetwork: maxNeuronsPerLayer > 50 || networkState.layers.length > 10,
+      maxNeuronsPerLayer,
+      totalNeurons: networkState.layers.reduce((sum, count) => sum + count, 0),
+      totalConnections: networkState.weights.reduce((sum, layer) => 
+        sum + layer.reduce((layerSum, neuron) => layerSum + neuron.length, 0), 0)
+    };
+  }, [networkState.layers, networkState.weights]);
+
+  // Adaptive rendering settings based on network size
+  const renderSettings = useMemo(() => {
+    const { isLargeNetwork, maxNeuronsPerLayer, totalConnections } = networkDimensions;
+    
+    return {
+      neuronRadius: isLargeNetwork ? 6 : 15,
+      connectionOpacityMultiplier: Math.min(1, 5000 / totalConnections),
+      connectionWidth: isLargeNetwork ? 0.5 : 1,
+      drawLabels: !isLargeNetwork,
+      batchSize: maxNeuronsPerLayer > 100 ? 50 : maxNeuronsPerLayer > 50 ? 25 : 10,
+      cullingThreshold: 0.01
+    };
+  }, [networkDimensions]);
+
+  // Initialize offscreen canvas
   useEffect(() => {
-    setMounted(true);
+    if (typeof window !== 'undefined' && !offscreenCanvasRef.current) {
+      const canvas = document.createElement('canvas');
+      offscreenCanvasRef.current = canvas;
+    }
     return () => {
-      if (hoverDebounceRef.current) {
-        window.clearTimeout(hoverDebounceRef.current);
+      if (renderRequestRef.current) {
+        cancelAnimationFrame(renderRequestRef.current);
       }
     };
   }, []);
 
+  // Update detail level based on network size and performance
   useEffect(() => {
-    if (!mounted) return;
-    setNetworkState(network.getNetworkState());
-  }, [network, mounted]);
+    const { isLargeNetwork, totalNeurons, totalConnections } = networkDimensions;
+    
+    if (totalConnections > 10000 || totalNeurons > 1000) {
+      setDetailLevel('low');
+    } else if (isLargeNetwork) {
+      setDetailLevel('medium');
+    } else {
+      setDetailLevel('high');
+    }
+  }, [networkDimensions]);
 
   const getActivationValue = useCallback(
     (layerIndex: number, neuronIndex: number): number => {
@@ -223,125 +264,179 @@ export const NeuralNetworkVisualizer: React.FC<NeuralNetworkVisualizerProps> = (
     return Math.sqrt(dx * dx + dy * dy);
   };
 
-  useEffect(() => {
-    if (!mounted) return;
+  const drawNetworkBatch = useCallback((
+    ctx: CanvasRenderingContext2D,
+    startLayer: number,
+    endLayer: number,
+    settings: typeof renderSettings
+  ) => {
+    const { layers, weights } = networkState;
+    const { neuronRadius, connectionOpacityMultiplier, connectionWidth, drawLabels, cullingThreshold } = settings;
+    const layerSpacing = ctx.canvas.width / (layers.length + 1);
 
-    const canvas = canvasRef.current;
-    if (!canvas) return;
+    // Draw connections for this batch
+    for (let i = startLayer; i < endLayer && i < weights.length; i++) {
+      const leftLayer = layers[i];
+      const rightLayer = layers[i + 1];
+      const startX = (i + 1) * layerSpacing;
+      const endX = (i + 2) * layerSpacing;
 
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
+      // Batch process connections
+      for (let j = 0; j < rightLayer; j++) {
+        const endY = (j + 1) * (ctx.canvas.height / (rightLayer + 1));
+        
+        for (let k = 0; k < leftLayer; k++) {
+          const weight = weights[i][j][k];
+          
+          // Skip rendering weak connections in low detail mode
+          if (detailLevel === 'low' && Math.abs(weight) < cullingThreshold) {
+            continue;
+          }
 
-    const drawNetwork = () => {
-      const { layers, weights } = networkState;
+          const startY = (k + 1) * (ctx.canvas.height / (leftLayer + 1));
+          const alpha = Math.min(Math.abs(weight) * connectionOpacityMultiplier, 1);
 
-      // Clear canvas
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-      // Calculate dimensions
-      const layerSpacing = canvas.width / (layers.length + 1);
-      const maxNeurons = Math.max(...layers);
-      const neuronSpacing = canvas.height / (maxNeurons + 1);
-      const neuronRadius = 15;
-      const neuronDiameter = neuronRadius * 2;
-
-      // Ensure neurons don't overlap
-      if (neuronSpacing < neuronDiameter) {
-        console.warn('Neurons may overlap due to insufficient vertical space');
-      }
-
-      // Draw connections
-      for (let i = 0; i < weights.length; i++) {
-        const leftLayer = layers[i];
-        const rightLayer = layers[i + 1];
-
-        for (let j = 0; j < rightLayer; j++) {
-          for (let k = 0; k < leftLayer; k++) {
-            const weight = weights[i][j][k];
-            const startX = (i + 1) * layerSpacing;
-            const startY = (k + 1) * (canvas.height / (leftLayer + 1));
-            const endX = (i + 2) * layerSpacing;
-            const endY = (j + 1) * (canvas.height / (rightLayer + 1));
-
+          if (alpha > cullingThreshold) {
             ctx.beginPath();
             ctx.moveTo(startX, startY);
             ctx.lineTo(endX, endY);
-
-            // Highlight hovered connection
-            if (
-              hoverState?.type === 'connection' &&
-              hoverState.fromLayer === i &&
-              hoverState.fromNeuron === k &&
-              hoverState.toLayer === i + 1 &&
-              hoverState.toNeuron === j
-            ) {
-              ctx.lineWidth = 3;
-              ctx.strokeStyle = '#00ff00';
-            } else {
-              ctx.lineWidth = 1;
-              const alpha = Math.abs(weight);
-              // Use different colors for positive and negative weights
-              ctx.strokeStyle =
-                weight > 0
-                  ? `rgba(0, 255, 0, ${alpha})` // Green for positive
-                  : `rgba(255, 0, 0, ${alpha})`; // Red for negative
-            }
+            ctx.lineWidth = connectionWidth;
+            ctx.strokeStyle = weight > 0
+              ? `rgba(0, 255, 0, ${alpha})`
+              : `rgba(255, 0, 0, ${alpha})`;
             ctx.stroke();
           }
         }
       }
+    }
 
-      // Draw neurons
-      layers.forEach((layerSize, layerIndex) => {
-        const x = (layerIndex + 1) * layerSpacing;
+    // Draw neurons for this batch
+    for (let layerIndex = startLayer; layerIndex <= endLayer && layerIndex < layers.length; layerIndex++) {
+      const layerSize = layers[layerIndex];
+      const x = (layerIndex + 1) * layerSpacing;
 
-        for (let i = 0; i < layerSize; i++) {
-          const y = (i + 1) * (canvas.height / (layerSize + 1));
+      for (let i = 0; i < layerSize; i++) {
+        const y = (i + 1) * (ctx.canvas.height / (layerSize + 1));
 
-          ctx.beginPath();
-          ctx.arc(x, y, neuronRadius, 0, Math.PI * 2);
+        ctx.beginPath();
+        ctx.arc(x, y, neuronRadius, 0, Math.PI * 2);
 
-          // Highlight hovered neuron or use color based on layer type and activation
-          if (
-            hoverState?.type === 'neuron' &&
-            hoverState.layer === layerIndex &&
-            hoverState.neuron === i
-          ) {
-            ctx.fillStyle = '#00ff00';
-          } else {
-            ctx.fillStyle = getNeuronColor(layerIndex, i);
-          }
-
-          ctx.fill();
-          ctx.strokeStyle = '#000';
-          ctx.lineWidth = 1;
-          ctx.stroke();
-
-          // Add layer labels
-          if (i === 0) {
-            ctx.fillStyle = '#fff';
-            ctx.font = '12px sans-serif';
-            ctx.textAlign = 'center';
-            ctx.fillText(
-              layerIndex === 0
-                ? 'Input'
-                : layerIndex === layers.length - 1
-                  ? 'Output'
-                  : `Hidden ${layerIndex}`,
-              x,
-              canvas.height - 10
-            );
-          }
+        if (hoverState?.type === 'neuron' && 
+            hoverState.layer === layerIndex && 
+            hoverState.neuron === i) {
+          ctx.fillStyle = '#00ff00';
+        } else {
+          ctx.fillStyle = getNeuronColor(layerIndex, i);
         }
-      });
+
+        ctx.fill();
+        ctx.strokeStyle = '#000';
+        ctx.lineWidth = 1;
+        ctx.stroke();
+
+        // Add layer labels only in high detail mode
+        if (drawLabels && i === 0) {
+          ctx.fillStyle = '#fff';
+          ctx.font = '12px sans-serif';
+          ctx.textAlign = 'center';
+          ctx.fillText(
+            layerIndex === 0
+              ? 'Input'
+              : layerIndex === layers.length - 1
+                ? 'Output'
+                : `Hidden ${layerIndex}`,
+            x,
+            ctx.canvas.height - 10
+          );
+        }
+      }
+    }
+  }, [networkState, hoverState, detailLevel, getNeuronColor]);
+
+  useEffect(() => {
+    if (!mounted) return;
+
+    const canvas = canvasRef.current;
+    const offscreenCanvas = offscreenCanvasRef.current;
+    if (!canvas || !offscreenCanvas) return;
+
+    const ctx = canvas.getContext('2d');
+    const offscreenCtx = offscreenCanvas.getContext('2d');
+    if (!ctx || !offscreenCtx) return;
+
+    // Set canvas sizes
+    const updateCanvasSize = () => {
+      const dpr = window.devicePixelRatio || 1;
+      const displayWidth = canvas.clientWidth;
+      const displayHeight = canvas.clientHeight;
+      
+      canvas.width = displayWidth * dpr;
+      canvas.height = displayHeight * dpr;
+      offscreenCanvas.width = canvas.width;
+      offscreenCanvas.height = canvas.height;
+      
+      ctx.scale(dpr, dpr);
+      offscreenCtx.scale(dpr, dpr);
     };
 
-    // Set canvas size
-    canvas.width = 800;
-    canvas.height = 400;
+    updateCanvasSize();
 
-    drawNetwork();
-  }, [networkState, mounted, hoverState, getNeuronColor]);
+    // Batch rendering function
+    const renderNetwork = () => {
+      const { layers } = networkState;
+      const { batchSize } = renderSettings;
+      let currentBatch = 0;
+
+      const processBatch = () => {
+        const startLayer = currentBatch * batchSize;
+        const endLayer = Math.min(startLayer + batchSize, layers.length - 1);
+
+        if (currentBatch === 0) {
+          offscreenCtx.clearRect(0, 0, offscreenCanvas.width, offscreenCanvas.height);
+        }
+
+        drawNetworkBatch(offscreenCtx, startLayer, endLayer, renderSettings);
+        
+        // Copy to main canvas
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.drawImage(offscreenCanvas, 0, 0);
+
+        currentBatch++;
+
+        if (startLayer < layers.length - 1) {
+          renderRequestRef.current = requestAnimationFrame(processBatch);
+        }
+      };
+
+      processBatch();
+    };
+
+    renderNetwork();
+
+    const resizeObserver = new ResizeObserver(updateCanvasSize);
+    resizeObserver.observe(canvas);
+
+    return () => {
+      resizeObserver.disconnect();
+      if (renderRequestRef.current) {
+        cancelAnimationFrame(renderRequestRef.current);
+      }
+    };
+  }, [networkState, mounted, renderSettings, drawNetworkBatch]);
+
+  useEffect(() => {
+    setMounted(true);
+    return () => {
+      if (hoverDebounceRef.current) {
+        window.clearTimeout(hoverDebounceRef.current);
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!mounted) return;
+    setNetworkState(network.getNetworkState());
+  }, [network, mounted]);
 
   if (!mounted) {
     return null;
