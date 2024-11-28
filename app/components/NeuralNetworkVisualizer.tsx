@@ -1,14 +1,14 @@
-"use client";
+'use client';
 
-import React, { useCallback, useEffect, useRef, useState } from "react";
-import { NeuralNetwork } from "../lib/NeuralNetwork";
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { NeuralNetwork } from '../lib/NeuralNetwork';
 
 interface NeuralNetworkVisualizerProps {
   network: NeuralNetwork;
 }
 
 interface HoverState {
-  type: "neuron" | "connection";
+  type: 'neuron' | 'connection';
   layer?: number;
   neuron?: number;
   fromLayer?: number;
@@ -21,9 +21,7 @@ interface HoverState {
   isOutput?: boolean;
 }
 
-export const NeuralNetworkVisualizer: React.FC<
-  NeuralNetworkVisualizerProps
-> = ({ network }) => {
+export const NeuralNetworkVisualizer: React.FC<NeuralNetworkVisualizerProps> = ({ network }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [networkState, setNetworkState] = useState(network.getNetworkState());
   const [mounted, setMounted] = useState(false);
@@ -44,7 +42,7 @@ export const NeuralNetworkVisualizer: React.FC<
 
   const getActivationValue = useCallback(
     (layerIndex: number, neuronIndex: number): number => {
-      if (typeof networkState.activation === "string") return 0;
+      if (typeof networkState.activation === 'string') return 0;
       // Input layer (index 0) has no activation, it's the input values
       if (layerIndex === 0) {
         return 0;
@@ -101,14 +99,12 @@ export const NeuralNetworkVisualizer: React.FC<
 
       for (let neuronIndex = 0; neuronIndex < layerSize; neuronIndex++) {
         const neuronY = (neuronIndex + 1) * (canvas.height / (layerSize + 1));
-        const distance = Math.sqrt(
-          Math.pow(x - layerX, 2) + Math.pow(y - neuronY, 2)
-        );
+        const distance = Math.sqrt(Math.pow(x - layerX, 2) + Math.pow(y - neuronY, 2));
 
         if (distance <= neuronRadius) {
           const value = getActivationValue(layerIndex, neuronIndex);
           setHoverState({
-            type: "neuron",
+            type: 'neuron',
             layer: layerIndex,
             neuron: neuronIndex,
             value,
@@ -138,7 +134,7 @@ export const NeuralNetworkVisualizer: React.FC<
           if (distance < 5 * Math.max(scaleX, scaleY)) {
             // Adjust hit area based on scale
             setHoverState({
-              type: "connection",
+              type: 'connection',
               fromLayer: i,
               fromNeuron: k,
               toLayer: i + 1,
@@ -161,14 +157,7 @@ export const NeuralNetworkVisualizer: React.FC<
     setTooltipPosition(null);
   };
 
-  const distanceToLine = (
-    x: number,
-    y: number,
-    x1: number,
-    y1: number,
-    x2: number,
-    y2: number
-  ) => {
+  const distanceToLine = (x: number, y: number, x1: number, y1: number, x2: number, y2: number) => {
     const A = x - x1;
     const B = y - y1;
     const C = x2 - x1;
@@ -205,7 +194,7 @@ export const NeuralNetworkVisualizer: React.FC<
     const canvas = canvasRef.current;
     if (!canvas) return;
 
-    const ctx = canvas.getContext("2d");
+    const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
     const drawNetwork = () => {
@@ -223,7 +212,7 @@ export const NeuralNetworkVisualizer: React.FC<
 
       // Ensure neurons don't overlap
       if (neuronSpacing < neuronDiameter) {
-        console.warn("Neurons may overlap due to insufficient vertical space");
+        console.warn('Neurons may overlap due to insufficient vertical space');
       }
 
       // Draw connections
@@ -245,14 +234,14 @@ export const NeuralNetworkVisualizer: React.FC<
 
             // Highlight hovered connection
             if (
-              hoverState?.type === "connection" &&
+              hoverState?.type === 'connection' &&
               hoverState.fromLayer === i &&
               hoverState.fromNeuron === k &&
               hoverState.toLayer === i + 1 &&
               hoverState.toNeuron === j
             ) {
               ctx.lineWidth = 3;
-              ctx.strokeStyle = "#00ff00";
+              ctx.strokeStyle = '#00ff00';
             } else {
               ctx.lineWidth = 1;
               const alpha = Math.abs(weight);
@@ -279,31 +268,31 @@ export const NeuralNetworkVisualizer: React.FC<
 
           // Highlight hovered neuron or use color based on layer type and activation
           if (
-            hoverState?.type === "neuron" &&
+            hoverState?.type === 'neuron' &&
             hoverState.layer === layerIndex &&
             hoverState.neuron === i
           ) {
-            ctx.fillStyle = "#00ff00";
+            ctx.fillStyle = '#00ff00';
           } else {
             ctx.fillStyle = getNeuronColor(layerIndex, i);
           }
 
           ctx.fill();
-          ctx.strokeStyle = "#000";
+          ctx.strokeStyle = '#000';
           ctx.lineWidth = 1;
           ctx.stroke();
 
           // Add layer labels
           if (i === 0) {
-            ctx.fillStyle = "#fff";
-            ctx.font = "12px sans-serif";
-            ctx.textAlign = "center";
+            ctx.fillStyle = '#fff';
+            ctx.font = '12px sans-serif';
+            ctx.textAlign = 'center';
             ctx.fillText(
               layerIndex === 0
-                ? "Input"
+                ? 'Input'
                 : layerIndex === layers.length - 1
-                ? "Output"
-                : `Hidden ${layerIndex}`,
+                  ? 'Output'
+                  : `Hidden ${layerIndex}`,
               x,
               canvas.height - 10
             );
@@ -324,48 +313,38 @@ export const NeuralNetworkVisualizer: React.FC<
   }
 
   return (
-    <div className="w-full max-w-4xl mx-auto p-4 relative">
+    <div className="relative mx-auto w-full max-w-4xl p-4">
       <canvas
         ref={canvasRef}
-        className="w-full border border-gray-300 rounded-lg bg-gray-900"
+        className="w-full rounded-lg border border-gray-300 bg-gray-900"
         onMouseMove={handleMouseMove}
         onMouseLeave={handleMouseLeave}
       />
       {tooltipPosition && hoverState && (
         <div
-          className="absolute bg-black/80 text-white p-2 rounded text-sm pointer-events-none"
+          className="pointer-events-none absolute rounded bg-black/80 p-2 text-sm text-white"
           style={{
             left: tooltipPosition.x + 10,
             top: tooltipPosition.y + 10,
           }}
         >
-          {hoverState.type === "neuron" ? (
+          {hoverState.type === 'neuron' ? (
             <>
               <div>
                 Layer: {hoverState.layer} (
-                {hoverState.isInput
-                  ? "Input"
-                  : hoverState.isOutput
-                  ? "Output"
-                  : "Hidden"}
-                )
+                {hoverState.isInput ? 'Input' : hoverState.isOutput ? 'Output' : 'Hidden'})
               </div>
               <div>Neuron: {hoverState.neuron}</div>
               <div>
-                {hoverState.isInput ? "Input" : "Activation"}:
-                {hoverState.value === undefined
-                  ? "N/A"
-                  : hoverState.value.toFixed(4)}
-                {hoverState.isOutput
-                  ? ""
-                  : ` (${networkState.activation || "N/A"})`}
+                {hoverState.isInput ? 'Input' : 'Activation'}:
+                {hoverState.value === undefined ? 'N/A' : hoverState.value.toFixed(4)}
+                {hoverState.isOutput ? '' : ` (${networkState.activation || 'N/A'})`}
               </div>
             </>
           ) : (
             <>
               <div>
-                From: Layer {hoverState.fromLayer}, Neuron{" "}
-                {hoverState.fromNeuron}
+                From: Layer {hoverState.fromLayer}, Neuron {hoverState.fromNeuron}
               </div>
               <div>
                 To: Layer {hoverState.toLayer}, Neuron {hoverState.toNeuron}

@@ -11,17 +11,10 @@ export const Header: React.FC = () => {
     <header className="sticky top-0 z-50 w-full border-b border-gray-800 bg-gray-950/75 backdrop-blur supports-[backdrop-filter]:bg-gray-950/75">
       <div className="container mx-auto flex h-14 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
         <div className="flex items-center space-x-4">
-          <Link 
-            href="/"
-            className="flex items-center space-x-2 hover:opacity-90"
-          >
+          <Link href="/" className="flex items-center space-x-2 hover:opacity-90">
             <AppIcon size={28} className="text-indigo-500" />
-            <span className="hidden font-semibold sm:inline">
-              Neural Network Simulator
-            </span>
-            <span className="font-semibold sm:hidden">
-              NN Sim
-            </span>
+            <span className="hidden font-semibold sm:inline">Neural Network Simulator</span>
+            <span className="font-semibold sm:hidden">NN Sim</span>
           </Link>
         </div>
 
@@ -53,24 +46,20 @@ export const Header: React.FC = () => {
               strokeWidth="1.5"
               stroke="currentColor"
             >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M6 18L18 6M6 6l12 12"
-              />
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
             </svg>
           )}
         </button>
 
         {/* Desktop navigation */}
         <nav className="hidden md:flex md:items-center md:space-x-6">
-          <Link 
+          <Link
             href="/examples"
             className="text-sm font-medium text-gray-400 transition-colors hover:text-gray-50"
           >
             Examples
           </Link>
-          <Link 
+          <Link
             href="/documentation"
             className="text-sm font-medium text-gray-400 transition-colors hover:text-gray-50"
           >

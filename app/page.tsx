@@ -39,15 +39,15 @@ export default function Home() {
       totalError = network.train(inputValues, [targetValue]);
     }
     setError(totalError);
-    setErrorHistory(prev => [...prev, totalError]);
+    setErrorHistory((prev) => [...prev, totalError]);
     handleForward();
   };
 
   const handleBatchTrain = async () => {
     if (!network || isBatchTraining) return;
-    
+
     setIsBatchTraining(true);
-    const example = trainingExamples.find(ex => ex.name === selectedExample);
+    const example = trainingExamples.find((ex) => ex.name === selectedExample);
     if (!example) return;
 
     const batchSize = 100;
@@ -62,11 +62,11 @@ export default function Home() {
       batchError /= example.examples.length;
       newErrorHistory.push(batchError);
       setErrorHistory(newErrorHistory);
-      
+
       // Update visualization every few iterations
       if (batch % 10 === 0) {
         setError(batchError);
-        await new Promise(resolve => setTimeout(resolve, delay));
+        await new Promise((resolve) => setTimeout(resolve, delay));
       }
     }
 
@@ -74,7 +74,7 @@ export default function Home() {
     handleExampleSelect(example.examples[0]);
   };
 
-  const handleExampleSelect = (example: { inputs: number[], target: number }) => {
+  const handleExampleSelect = (example: { inputs: number[]; target: number }) => {
     setInputValues(example.inputs);
     setTargetValue(example.target);
     if (network) {
@@ -116,17 +116,17 @@ export default function Home() {
   return (
     <main className="flex min-h-screen flex-col items-center p-4 sm:p-8 md:p-16 lg:p-24">
       <div className="z-10 w-full max-w-7xl">
-        <h1 className="mb-6 text-2xl sm:text-3xl md:text-4xl font-bold text-center">
+        <h1 className="mb-6 text-center text-2xl font-bold sm:text-3xl md:text-4xl">
           Neural Network Training Simulator
         </h1>
-        
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 md:gap-8 mb-6 sm:mb-8">
+
+        <div className="mb-6 grid grid-cols-1 gap-4 sm:mb-8 sm:gap-6 md:gap-8 lg:grid-cols-2">
           <NetworkConfig
             onConfigChange={handleConfigChange}
             currentLayers={network.getNetworkState().layers}
             currentLearningRate={0.1}
           />
-          
+
           <NetworkControls
             network={network}
             onLoadNetwork={handleLoadNetwork}
@@ -135,61 +135,67 @@ export default function Home() {
           />
         </div>
 
-        <div className="mb-6 sm:mb-8 overflow-x-auto">
+        <div className="mb-6 overflow-x-auto sm:mb-8">
           <NeuralNetworkVisualizer network={network} />
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 md:gap-8">
+        <div className="grid grid-cols-1 gap-4 sm:gap-6 md:gap-8 lg:grid-cols-2">
           <div className="space-y-4 sm:space-y-6 md:space-y-8">
             <TrainingExamples onSelectExample={handleExampleSelect} />
             <div className="overflow-x-auto">
               <DecisionBoundary network={network} />
             </div>
           </div>
-          
+
           <div className="space-y-4 sm:space-y-6 md:space-y-8">
-            <div className="bg-white/5 p-4 rounded-lg">
+            <div className="rounded-lg bg-white/5 p-4">
               <div className="space-y-4">
-                <h2 className="text-lg sm:text-xl font-semibold">Training Controls</h2>
+                <h2 className="text-lg font-semibold sm:text-xl">Training Controls</h2>
                 <select
                   value={selectedExample}
                   onChange={(e) => setSelectedExample(e.target.value)}
-                  className="w-full p-2 bg-white/10 rounded mb-4"
+                  className="mb-4 w-full rounded bg-white/10 p-2"
                 >
-                  {trainingExamples.map(ex => (
-                    <option key={ex.name} value={ex.name}>{ex.name}</option>
+                  {trainingExamples.map((ex) => (
+                    <option key={ex.name} value={ex.name}>
+                      {ex.name}
+                    </option>
                   ))}
                 </select>
-                
+
                 <button
                   onClick={handleBatchTrain}
                   disabled={isBatchTraining}
-                  className="w-full px-4 py-2 bg-purple-500 text-white rounded hover:bg-purple-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full rounded bg-purple-500 px-4 py-2 text-white hover:bg-purple-600 disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   {isBatchTraining ? 'Training...' : 'Train on Full Dataset'}
                 </button>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <div>
-                    <h3 className="font-semibold mb-2">Single Training:</h3>
+                    <h3 className="mb-2 font-semibold">Single Training:</h3>
                     <input
                       type="number"
                       min="1"
                       max="100"
                       value={trainingIterations}
-                      onChange={(e) => setTrainingIterations(Math.max(1, Math.min(100, parseInt(e.target.value) || 1)))}
-                      className="w-full p-2 bg-white/10 rounded mb-2"
+                      onChange={(e) =>
+                        setTrainingIterations(
+                          Math.max(1, Math.min(100, parseInt(e.target.value) || 1))
+                        )
+                      }
+                      className="mb-2 w-full rounded bg-white/10 p-2"
                     />
                     <div className="flex gap-2">
                       <button
                         onClick={handleForward}
-                        className="flex-1 px-3 py-2 text-sm sm:px-4 sm:text-base bg-blue-500 text-white rounded hover:bg-blue-600"
+                        className="flex-1 rounded bg-blue-500 px-3 py-2 text-sm text-white hover:bg-blue-600 sm:px-4 sm:text-base"
                       >
                         Forward
                       </button>
                       <button
                         onClick={handleTrain}
-                        className="flex-1 px-3 py-2 text-sm sm:px-4 sm:text-base bg-green-500 text-white rounded hover:bg-green-600"
+                        className="flex-1 rounded bg-green-500 px-3 py-2 text-sm text-white hover:bg-green-600 sm:px-4 sm:text-base"
                       >
                         Train
                       </button>
@@ -197,7 +203,7 @@ export default function Home() {
                   </div>
 
                   <div>
-                    <h3 className="font-semibold mb-2">Current Values:</h3>
+                    <h3 className="mb-2 font-semibold">Current Values:</h3>
                     <div className="space-y-2 text-sm sm:text-base">
                       <div className="flex justify-between">
                         <span>Inputs:</span>

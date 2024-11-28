@@ -25,7 +25,7 @@ export class NeuralNetwork {
     this.activation = 'sigmoid';
     this.weights = [];
     this.biases = [];
-    
+
     // Initialize activation functions with sigmoid as default
     this.activationFn = (x: number) => 1 / (1 + Math.exp(-x));
     this.activationDerivative = (x: number) => {
@@ -40,10 +40,10 @@ export class NeuralNetwork {
     for (let i = 0; i < this.layers.length - 1; i++) {
       this.weights[i] = [];
       this.biases[i] = [];
-      
+
       // Xavier/Glorot initialization
       const stdDev = Math.sqrt(2.0 / (this.layers[i] + this.layers[i + 1]));
-      
+
       for (let j = 0; j < this.layers[i + 1]; j++) {
         this.weights[i][j] = [];
         for (let k = 0; k < this.layers[i]; k++) {
@@ -66,7 +66,7 @@ export class NeuralNetwork {
     switch (activation) {
       case 'relu':
         this.activationFn = (x: number) => Math.max(0, x);
-        this.activationDerivative = (x: number) => x > 0 ? 1 : 0;
+        this.activationDerivative = (x: number) => (x > 0 ? 1 : 0);
         break;
       case 'tanh':
         this.activationFn = Math.tanh;
@@ -96,7 +96,7 @@ export class NeuralNetwork {
     for (let i = 0; i < this.weights.length; i++) {
       const z: number[] = [];
       const activation: number[] = [];
-      
+
       for (let j = 0; j < this.weights[i].length; j++) {
         let sum = this.biases[i][j];
         for (let k = 0; k < this.weights[i][j].length; k++) {
@@ -105,7 +105,7 @@ export class NeuralNetwork {
         z.push(sum);
         activation.push(this.activationFn(sum));
       }
-      
+
       zValues.push(z);
       activations.push(activation);
       currentLayer = activation;
@@ -119,7 +119,9 @@ export class NeuralNetwork {
       throw new Error(`Input size mismatch. Expected ${this.layers[0]}, got ${inputs.length}`);
     }
     if (targets.length !== this.layers[this.layers.length - 1]) {
-      throw new Error(`Target size mismatch. Expected ${this.layers[this.layers.length - 1]}, got ${targets.length}`);
+      throw new Error(
+        `Target size mismatch. Expected ${this.layers[this.layers.length - 1]}, got ${targets.length}`
+      );
     }
 
     // Forward pass
@@ -130,7 +132,7 @@ export class NeuralNetwork {
     for (let i = 0; i < this.weights.length; i++) {
       const z: number[] = [];
       const activation: number[] = [];
-      
+
       for (let j = 0; j < this.weights[i].length; j++) {
         let sum = this.biases[i][j];
         for (let k = 0; k < this.weights[i][j].length; k++) {
@@ -139,7 +141,7 @@ export class NeuralNetwork {
         z.push(sum);
         activation.push(this.activationFn(sum));
       }
-      
+
       zValues.push(z);
       activations.push(activation);
       currentLayer = activation;
@@ -147,12 +149,12 @@ export class NeuralNetwork {
 
     // Backward pass
     const deltas: number[][] = new Array(this.weights.length);
-    
+
     // Calculate output layer deltas
     const outputDeltas: number[] = [];
     const outputLayer = activations[activations.length - 1];
     const outputZ = zValues[zValues.length - 1];
-    
+
     for (let i = 0; i < outputLayer.length; i++) {
       const error = outputLayer[i] - targets[i];
       outputDeltas.push(error * this.activationDerivative(outputZ[i]));
@@ -163,7 +165,7 @@ export class NeuralNetwork {
     for (let i = this.weights.length - 2; i >= 0; i--) {
       const layerDeltas: number[] = [];
       const currentZ = zValues[i];
-      
+
       for (let j = 0; j < this.weights[i].length; j++) {
         let error = 0;
         for (let k = 0; k < this.weights[i + 1].length; k++) {
@@ -194,12 +196,18 @@ export class NeuralNetwork {
       weights: JSON.parse(JSON.stringify(this.weights)),
       biases: JSON.parse(JSON.stringify(this.biases)),
       activation: this.activation,
-      learningRate: this.learningRate
+      learningRate: this.learningRate,
     };
   }
 
   loadNetworkState(state: NetworkState): void {
-    if (!state.layers || !state.weights || !state.biases || !state.activation || state.learningRate === undefined) {
+    if (
+      !state.layers ||
+      !state.weights ||
+      !state.biases ||
+      !state.activation ||
+      state.learningRate === undefined
+    ) {
       throw new Error('Invalid network state');
     }
 
@@ -242,11 +250,11 @@ export class NeuralNetwork {
   computeGradient(x: number, y: number): { dx: number; dy: number } {
     const epsilon = 1e-7;
     const baseOutput = this.predictPoint(x, y);
-    
+
     // Compute partial derivatives
     const dx = (this.predictPoint(x + epsilon, y) - baseOutput) / epsilon;
     const dy = (this.predictPoint(x, y + epsilon) - baseOutput) / epsilon;
-    
+
     return { dx, dy };
   }
 
